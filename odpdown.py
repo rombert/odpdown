@@ -187,8 +187,10 @@ class ODFPartialTree:
                         text_box.append(elem)
                     return
 
-            # special-case image frames - append to pages literally!
-            if isinstance(elems[0], odf_frame):
+            # special-case image frames and notes - append to pages
+            # literally!
+            if (isinstance(elems[0], odf_frame)
+                  or elems[0].get_tag() == 'presentation:notes'):
                 for child in elems:
                     self._elements[-1].append(child)
             else:
@@ -524,7 +526,28 @@ class ODFRenderer(mistune.Renderer):
     def block_code(self, code, language=None):
         para = odf_create_paragraph(style=u'md2odp-ParagraphCodeStyle')
 
-        if language is not None:
+        if language == 'Comment':
+            notes = odf_create_element('presentation:notes')
+
+            # no lang given, use plain monospace formatting
+            for elem in handle_whitespace(code):
+                if isinstance(elem, basestring):
+                    span = odf_create_element('text:span')
+                    span.set_text(elem)
+                    para.append(span)
+                else:
+                    para.append(elem)
+
+            frame = odf_create_text_frame(
+                para,
+                presentation_style=u'md2odp-OutlineText',
+                size=(u'18cm', u'25cm'),
+                position=(u'2cm', u'2cm'),
+                presentation_class=u'title')
+            notes.append(frame)
+            return ODFPartialTree.from_metrics_provider([notes], self)
+
+        elif language is not None:
             # explicit lang given, use syntax highlighting
             lexer = get_lexer_by_name(language)
 
