@@ -407,6 +407,7 @@ class ODFRenderer(mistune.Renderer):
                  outline_size=None,
                  outline_position=None,
                  highlight_style='colorful',
+                 aspect_ratio = '43',
                  autofit_text=True):
         mistune.Renderer.__init__(self)
         self.formatter = ODFFormatter(style=highlight_style)
@@ -434,6 +435,7 @@ class ODFRenderer(mistune.Renderer):
                              else outline_size)
         self.outline_position = ((u'2cm', u'4cm') if outline_position is None
                                  else outline_position)
+        self.aspect_ratio = aspect_ratio
 
         # font/char styles
         self.document.insert_style(
@@ -730,8 +732,15 @@ class ODFRenderer(mistune.Renderer):
 
         image_ratio = image_w / float(image_h)
 
-        frame_x, frame_y = (2, 4)
-        frame_w, frame_h = (22, 12)
+        if self.aspect_ratio == "1610":
+            frame_x, frame_y = (2, 3)
+            frame_w, frame_h = (22, 10)
+        elif self.aspect_ratio == "43":
+            frame_x, frame_y = (2, 4)
+            frame_w, frame_h = (22, 12)
+        else:
+            raise RuntimeError("Invalid aspect ratio " + aspect_ratio)
+
         frame_ratio = frame_w / float(frame_h)
 
         if image_ratio > frame_ratio:
@@ -814,6 +823,10 @@ def main():
                         help='Use this master page for the 2nd level headlines'
                         ' and content. List available ones if called with'
                         ' empty or unknown name')
+    parser.add_argument('--aspect-ratio', default='43', help='Slide ratio '
+                        'aspect. Poosible values are 43 for 4:3 ratio and '
+                        '169 for 16:9 ratio. Used for adjusting image '
+                        'crop ratio. [Defaults to 43]')
     args = parser.parse_args()
 
     markdown = (codecs.getreader("utf-8")(sys.stdin) if args.input_md == '-'
@@ -821,6 +834,8 @@ def main():
     odf_in = args.template_odp
     odf_out = args.output_odp
     presentation = odf_get_document(odf_in)
+    # TODO - aspect_ratio should be inferred from slides
+    aspect_ratio = args.aspect_ratio
 
     master_pages = presentation.get_part(ODF_STYLES).get_elements(
         'descendant::style:master-page')
@@ -880,7 +895,8 @@ def main():
                                outline_size=outline_size,
                                outline_position=outline_position,
                                autofit_text=args.no_autofit,
-                               highlight_style=args.highlight_style)
+                               highlight_style=args.highlight_style,
+                               aspect_ratio=args.aspect_ratio)
     mkdown = mistune.Markdown(renderer=odf_renderer)
 
     doc_elems = presentation.get_body()
