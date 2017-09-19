@@ -481,6 +481,9 @@ class ODFRenderer(mistune.Renderer):
                                   'margin_top': u'0.6cm',
                                   'margin_bottom': u'0.6cm',
                                   'text_indent': u'0cm'})])
+        add_style(document, 'paragraph', u'md2odp-NoteText',
+                [('text', {'color': u'#000000'})])
+
         # graphic styles
         add_style(document, 'graphic', u'md2odp-ImageStyle',
                   [('graphic', {'stroke': u'none',
@@ -526,7 +529,7 @@ class ODFRenderer(mistune.Renderer):
         return ODFPartialTree.from_metrics_provider([], self)
 
     def block_code(self, code, language=None):
-        para = odf_create_paragraph(style=u'md2odp-ParagraphCodeStyle')
+        para = odf_create_paragraph(style=u'md2odp-NoteText')
 
         if language == 'Comment':
             notes = odf_create_element('presentation:notes')
