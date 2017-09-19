@@ -313,7 +313,7 @@ class ODFFormatter(Formatter):
             if style['color']:
                 add_style(document, 'text',
                           u'md2odp-TColor%s' % style['color'],
-                          [('text', {'color': u'#'+style['color']})])
+                          [('text', {'color': u'#'+self.invert_rgb(style['color'])})])
             if style['bold']:
                 add_style(document, 'text', u'md2odp-TBold',
                           [('text', {'font_weight': u'bold'})])
@@ -390,6 +390,19 @@ class ODFFormatter(Formatter):
 
         return result
 
+    def invert_rgb(self, color):
+        # TODO - only invert after CLI flag is set
+        r = color[0:2]
+        g = color[2:4]
+        b = color[4:6]
+
+        r_new = format(255 - int(r, 16), 'x')
+        g_new = format(255 - int(g, 16), 'x')
+        b_new = format(255 - int(b, 16), 'x')
+
+        color_new = r_new.upper() + g_new.upper() + b_new.upper()
+
+        return color_new
 
 class ODFRenderer(mistune.Renderer):
     """Render mistune event stream as ODF"""
@@ -529,9 +542,9 @@ class ODFRenderer(mistune.Renderer):
         return ODFPartialTree.from_metrics_provider([], self)
 
     def block_code(self, code, language=None):
-        para = odf_create_paragraph(style=u'md2odp-NoteText')
 
         if language == 'Comment':
+            para = odf_create_paragraph(style=u'md2odp-NoteText')
             notes = odf_create_element('presentation:notes')
 
             # no lang given, use plain monospace formatting
@@ -554,12 +567,14 @@ class ODFRenderer(mistune.Renderer):
 
         elif language is not None:
             # explicit lang given, use syntax highlighting
+            para = odf_create_paragraph(style=u'md2odp-ParagraphCodeStyle')
             lexer = get_lexer_by_name(language)
 
             for span in self.formatter.format(lexer.get_tokens(code)):
                 para.append(span)
         else:
             # no lang given, use plain monospace formatting
+            para = odf_create_paragraph(style=u'md2odp-ParagraphCodeStyle')
             for elem in handle_whitespace(code):
                 if isinstance(elem, basestring):
                     span = odf_create_element('text:span')
